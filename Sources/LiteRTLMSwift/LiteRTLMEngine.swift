@@ -50,7 +50,7 @@ public final class LiteRTLMEngine: @unchecked Sendable {
     private let backend: String
 
     private var engine: OpaquePointer?  // LiteRtLmEngine*
-    private let inferenceQueue = DispatchQueue(label: "com.litertlm.inference", qos: .userInitiated)
+    internal let inferenceQueue = DispatchQueue(label: "com.litertlm.inference", qos: .userInitiated)
 
     private static let log = Logger(subsystem: "LiteRTLMSwift", category: "Engine")
 
@@ -498,9 +498,9 @@ public final class LiteRTLMEngine: @unchecked Sendable {
     // API — supporting images, audio, and text. The conversation's KV cache
     // persists across turns, so follow-up messages only prefill new tokens.
 
-    private var multimodalConversation: OpaquePointer?
-    private var multimodalConvConfig: OpaquePointer?
-    private var multimodalSessionConfig: OpaquePointer?
+    internal var multimodalConversation: OpaquePointer?
+    internal var multimodalConvConfig: OpaquePointer?
+    internal var multimodalSessionConfig: OpaquePointer?
 
     /// Open a persistent multimodal conversation with KV cache reuse.
     ///
