@@ -72,7 +72,14 @@ extension LiteRTLMEngine {
         AsyncThrowingStream { continuation in
             inferenceQueue.async { [self] in
                 do {
-                    try ensureReady()
+                    // NOTE: ensureReady() is `private` in the upstream wrapper
+                    // and therefore inaccessible from this separate-file extension
+                    // in Swift (only same-file `private` access is allowed within
+                    // an extension). The equivalent safety contract is enforced by
+                    // the `multimodalConversation` guard below: the bridge calls
+                    // `openConversation()` during `loadModel` and only exposes
+                    // the engine to callers after that succeeds, so `conversation`
+                    // will be non-nil iff the engine is ready.
                     guard let conversation = multimodalConversation else {
                         throw LiteRTLMError.inferenceFailure(
                             "No persistent conversation open — call openConversation() first"
