@@ -38,6 +38,9 @@
 //   * The opaque `callback_data` pointer carries a `passRetained`
 //     boxed state, released exactly once when `isFinal` arrives or
 //     when the C call returns nonzero.
+//   * We do not block `inferenceQueue` waiting for the final callback:
+//     cancellation also uses that queue, so a semaphore wait here can
+//     deadlock a stuck stream.
 //   * `cancelProcess()` is callable from any thread.
 
 import Foundation
@@ -132,10 +135,8 @@ extension LiteRTLMEngine {
                         extraContextJSON = nil
                     }
 
-                    let streamDone = DispatchSemaphore(value: 0)
                     let state = TacitaStreamState(
                         continuation: continuation,
-                        doneSemaphore: streamDone,
                         restitchThinking: restitchThinkingMarkers,
                         tempURLs: tempURLs
                     )
@@ -174,11 +175,9 @@ extension LiteRTLMEngine {
                                 st.continuation.finish()
                             }
                             st.cleanupTempFiles()
-                            let semaphore = st.doneSemaphore
                             Unmanaged<TacitaStreamState>
                                 .fromOpaque(cbData)
                                 .release()
-                            semaphore.signal()
                         }
                     }
 
@@ -214,7 +213,6 @@ extension LiteRTLMEngine {
                         return
                     }
 
-                    streamDone.wait()
                 } catch {
                     continuation.finish(throwing: error)
                 }
@@ -239,18 +237,15 @@ extension LiteRTLMEngine {
 private final class TacitaStreamState {
     init(
         continuation: AsyncThrowingStream<String, Error>.Continuation,
-        doneSemaphore: DispatchSemaphore,
         restitchThinking: Bool,
         tempURLs: [URL]
     ) {
         self.continuation = continuation
-        self.doneSemaphore = doneSemaphore
         self.restitchThinking = restitchThinking
         self.tempURLs = tempURLs
     }
 
     let continuation: AsyncThrowingStream<String, Error>.Continuation
-    let doneSemaphore: DispatchSemaphore
     let restitchThinking: Bool
     private let tempURLs: [URL]
 
